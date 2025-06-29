@@ -115,45 +115,15 @@ class LabReportPDF(FPDF):
         return self.get_y()
 
     def header(self):
-        # Logo on left side
-        if self.logo_path and os.path.exists(self.logo_path):
-            try:
-                self.image(self.logo_path, 10, 8, 30)  # x, y, width
-            except:
-                pass  # If logo fails to load, continue without it
-        
-        # Company name and details on right side
-        self.set_xy(45, 8)
-        self.set_font('Arial', 'B', 16)
-        self.set_text_color(0, 100, 200)  # Blue color
-        self.cell(0, 8, 'CRYSTALDATA SOFTWARE SERVICES', 0, 1, 'L')
-        
-        self.set_xy(45, 16)
-        self.set_font('Arial', '', 10)
-        self.set_text_color(0, 0, 0)
-        self.cell(0, 4, 'CONSULTING, DEVELOPMENT, SUPPORT', 0, 1, 'L')
-        self.set_xy(45, 20)
-        self.cell(0, 4, 'INDIA PVT. LTD.', 0, 1, 'L')
-        self.set_xy(45, 24)
-        self.cell(0, 4, 'www.crystaldatasoftware.com', 0, 1, 'L')
-        
-        self.ln(10)
-        
-        # Header line
-        self.set_draw_color(0, 100, 200)
+        # Reserve vertical space equivalent to what was used before
+        self.ln(25)
         self.line(10, self.get_y(), 200, self.get_y())
         self.ln(5)
+
     
     def footer(self):
         # Position footer 50mm from bottom
         self.set_y(-50)
-        
-        # Add logo in footer if available
-        if self.logo_path and os.path.exists(self.logo_path):
-            try:
-                self.image(self.logo_path, 90, self.get_y() + 5, 20)  # Centered logo
-            except:
-                pass
         
         self.set_y(-40)
         self.set_font('Arial', 'I', 8)
@@ -163,15 +133,15 @@ class LabReportPDF(FPDF):
         self.cell(0, 4, 'Bold Indicates Abnormal Values', 0, 1, 'C')
         self.ln(2)
         
-        # Doctor info
-        self.set_font('Arial', 'B', 10)
-        self.set_text_color(0, 0, 0)
-        self.cell(0, 4, 'Lab Technician', 0, 1, 'C')
-        self.cell(0, 4, 'CrystalKetan Chavan', 0, 1, 'C')
-        self.cell(0, 4, 'M.D. M.B.B.S.', 0, 1, 'C')
+        # # Doctor info
+        # self.set_font('Arial', 'B', 10)
+        # self.set_text_color(0, 0, 0)
+        # self.cell(0, 4, 'Lab Technician', 0, 1, 'C')
+        # self.cell(0, 4, 'Name ??', 0, 1, 'C')
+        # self.cell(0, 4, 'M.D. M.B.B.S.', 0, 1, 'C')
         
-        self.set_font('Arial', '', 8)
-        self.cell(0, 4, '305 Goldcrest Business Park, LB.S Marg, Ghatkopar (West), Mumbai - 400086, India', 0, 1, 'C')
+        # self.set_font('Arial', '', 8)
+        # self.cell(0, 4, '305 Goldcrest Business Park, LB.S Marg, Ghatkopar (West), Mumbai - 400086, India', 0, 1, 'C')
     
     def check_page_break(self, height_needed):
         """Check if we need a page break before adding content"""
@@ -243,31 +213,45 @@ class LabReportPDF(FPDF):
         if section_title:
             self.set_font('Arial', 'B', 10)
             self.cell(0, 6, section_title.upper(), 0, 1, 'L')
-            self.ln(2)
-        
-        # # Table headers with background
-        # self.set_font('Arial', 'B', 9)
-        # self.set_fill_color(240, 240, 240)
-        
-        # self.cell(60, 8, 'TEST', 0, 0, 'L', True)
-        # self.cell(30, 8, 'RESULT', 0, 0, 'C', True)
-        # self.cell(25, 8, 'UNITS', 0, 0, 'C', True)
-        # self.cell(75, 8, 'NORMAL VALUES', 0, 1, 'C', True)
-        
-        # self.ln(2)
-        
+            self.ln(2)        
         # Table rows
-        self.set_font('Arial', '', 8)
+        self.set_font('Arial', '', 9)
         
         for index, row in data.iterrows():
             result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-            
+            lower_value, upper_value = None, None
+            try:
+                normal_values = row['Normal Values']
+                lower_value = float(normal_values.split("-")[0])
+                upper_value = float(normal_values.split("-")[1].split(" ")[1])
+            except Exception as e:
+                pass
+
             self.cell(60, 5, str(row['Test']), 0, 0, 'L')
             
             if result_str and result_str.strip():
-                self.set_font('Arial', 'B', 8)
-                self.cell(30, 5, result_str, 0, 0, '')
-                self.set_font('Arial', '', 8)
+                try:
+                    if float(result_str) and lower_value and upper_value:
+                        if float(result_str) < lower_value:
+                            self.set_font('Arial', 'B', 9)
+                            self.cell(30, 5, result_str, 0, 0, 'C')
+                            self.set_font('Arial', '', 9)
+                        elif float(result_str) > upper_value:
+                            self.set_font('Arial', 'B', 9)
+                            self.cell(30, 5, result_str, 0, 0, 'C')
+                            self.set_font('Arial', '', 9)
+                        else:
+                            self.set_font('Arial', '    ', 9)
+                            self.cell(30, 5, result_str, 0, 0, 'C')
+                            self.set_font('Arial', '', 9)
+                    else:
+                        self.set_font('Arial', '    ', 9)
+                        self.cell(30, 5, result_str, 0, 0, 'C')
+                        self.set_font('Arial', '', 9)
+                except:
+                    self.set_font('Arial', '', 9)
+                    self.cell(30, 5, result_str, 0, 0, 'C')
+                    self.set_font('Arial', '', 9)
             else:
                 self.cell(30, 5, result_str, 0, 0, 'C')
             
@@ -276,40 +260,45 @@ class LabReportPDF(FPDF):
         
         self.ln(5)
 
+
 def generate_cbc_report(pdf, patient_info, report_data):
     data = report_data["Complete Blood Count (CBC)"]
     pdf.add_report_title("COMPLETE BLOOD COUNT(CBC)")
 
+    def print_if_has_result(subset, section_title=None):
+        subset = subset[subset['Result'].notna() & (subset['Result'].astype(str).str.strip() != '')]
+        if not subset.empty:
+            pdf.add_test_table(subset, section_title)
+
     # Basic CBC parameters
     basic_tests = ['Haemoglobin', 'RBC Count', 'PCV']
     basic_data = data[data['Test'].isin(basic_tests)]
-    pdf.add_test_table(basic_data)
-    
+    print_if_has_result(basic_data)
+
     # RBC INDICES section
     rbc_indices = ['MCV', 'MCH', 'MCHC', 'RDW']
     rbc_data = data[data['Test'].isin(rbc_indices)]
-    pdf.add_test_table(rbc_data, "RBC INDICES")
-    
+    print_if_has_result(rbc_data, "RBC INDICES")
+
     # TOTAL WBC COUNT section
     wbc_tests = ['Total WBC Count', 'Neutrophils', 'Lymphocytes', 'Eosinophils', 'Monocytes', 'Basophils']
     wbc_data = data[data['Test'].isin(wbc_tests)]
-    pdf.add_test_table(wbc_data, "TOTAL WBC COUNT")
-    
+    print_if_has_result(wbc_data, "TOTAL WBC COUNT")
+
     # PLATELETS section
     platelet_tests = ['Platelet Count', 'Platelets on Smear']
     platelet_data = data[data['Test'].isin(platelet_tests)]
-    pdf.add_test_table(platelet_data, "PLATELETS")
-    
+    print_if_has_result(platelet_data, "PLATELETS")
+
     # PERIPHERAL BLOOD SMEAR section
     smear_tests = ['RBC Morphology', 'WBCs on PS', 'RDWSD', 'RDWCV', 'MPV', 'P-LCR']
     smear_data = data[data['Test'].isin(smear_tests)]
-    pdf.add_test_table(smear_data, "PERIPHERAL BLOOD SMEAR")
-    
+    print_if_has_result(smear_data, "PERIPHERAL BLOOD SMEAR")
+
     # Add instrument information
     pdf.set_font('Arial', 'I', 8)
     pdf.cell(0, 5, "Test done on Nihon Kohden MEK- 6420K fully automated cell counter.", 0, 1)
     pdf.ln(5)
-
 
 def create_pdf_report(patient_info, report_data, selected_reports, logo_path=None):
     pdf = LabReportPDF(logo_path)
@@ -358,11 +347,11 @@ def load_report_template(report_name):
                 "", "", "fl", "%", "fl", "%"
             ],
             "Normal Values": [
-                "Male: 14 - 16 g%", "4.0 - 6.0 million/cu.mm", "37 - 54%",
-                "80 - 99 fl", "27 - 31 pg", "32 - 37%", "9 - 17 fl",
-                "4000 - 10,000/cu.mm", "40 - 70 %", "20 - 45 %",
+                "Male: 14 - 16 g%", "4.0 - 6.0 million/cu.mm", "37 - 54 %",
+                "80 - 99 fl", "27 - 31 pg", "32 - 37 %", "9 - 17 fl",
+                "4000 - 10,000 /cu.mm", "40 - 70 %", "20 - 45 %",
                 "00 - 06 %", "00 - 08 %", "00 - 01 %",
-                "150000 - 450000/lak cu.mm", "Adequate On Smear",
+                "150000 - 450000 /lak cu.mm", "Adequate On Smear",
                 "Normocytic, Normochromic", "Normal", "37 - 54 fl", "11 - 16 %", "9 - 13 fl", "13 - 43 %"
             ]
         }
@@ -620,605 +609,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# import streamlit as st
-# import pandas as pd
-# from datetime import datetime
-# import base64
-# from fpdf import FPDF
-# import os
-
-# # Set page configuration
-# st.set_page_config(page_title="Lab Report Generator", layout="wide")
-
-# # Custom CSS for styling
-# st.markdown("""
-# <style>
-#     .header {
-#         font-size: 24px;
-#         font-weight: bold;
-#         text-align: center;
-#         margin-bottom: 20px;
-#     }
-#     .patient-info {
-#         background-color: #f0f2f6;
-#         padding: 10px;
-#         border-radius: 5px;
-#         margin-bottom: 20px;
-#     }
-#     .report-section {
-#         margin-bottom: 30px;
-#     }
-#     .test-table {
-#         width: 100%;
-#         border-collapse: collapse;
-#     }
-#     .test-table th, .test-table td {
-#         border: 1px solid #ddd;
-#         padding: 8px;
-#         text-align: left;
-#     }
-#     .test-table th {
-#         background-color: #f2f2f2;
-#     }
-#     .footer {
-#         margin-top: 30px;
-#         font-size: 12px;
-#         text-align: center;
-#         color: #666;
-#     }
-# </style>
-# """, unsafe_allow_html=True)
-
-# # Report templates
-# REPORT_TYPES = {
-#     "Complete Blood Count (CBC)": "cbc_template.csv",
-#     "Liver Function Test (LFT)": "lft_template.csv",
-#     "Kidney Function Test (KFT)": "kft_template.csv",
-#     "Thyroid Function Test (TFT)": "tft_template.csv"
-# }
-
-# # Initialize session state
-# if 'patient_data' not in st.session_state:
-#     st.session_state.patient_data = {}
-# if 'report_data' not in st.session_state:
-#     st.session_state.report_data = {}
-
-# class LabReportPDF(FPDF):
-#     def __init__(self, logo_path=None):
-#         super().__init__()
-#         self.set_auto_page_break(auto=True, margin=15)
-#         self.logo_path = logo_path
-    
-#     def header(self):
-#         # Logo on left side
-#         if self.logo_path and os.path.exists(self.logo_path):
-#             try:
-#                 self.image(self.logo_path, 10, 8, 30)  # x, y, width
-#             except:
-#                 pass  # If logo fails to load, continue without it
-        
-#         # Company name and details on right side
-#         self.set_xy(45, 8)
-#         self.set_font('Arial', 'B', 16)
-#         self.set_text_color(0, 100, 200)  # Blue color
-#         self.cell(0, 8, 'CRYSTALDATA SOFTWARE SERVICES', 0, 1, 'L')
-        
-#         self.set_xy(45, 16)
-#         self.set_font('Arial', '', 10)
-#         self.set_text_color(0, 0, 0)
-#         self.cell(0, 4, 'CONSULTING, DEVELOPMENT, SUPPORT', 0, 1, 'L')
-#         self.set_xy(45, 20)
-#         self.cell(0, 4, 'INDIA PVT. LTD.', 0, 1, 'L')
-#         self.set_xy(45, 24)
-#         self.cell(0, 4, 'www.crystaldatasoftware.com', 0, 1, 'L')
-        
-#         self.ln(10)
-        
-#         # Header line
-#         self.set_draw_color(0, 100, 200)
-#         self.line(10, self.get_y(), 200, self.get_y())
-#         self.ln(5)
-    
-#     def footer(self):
-#         self.set_y(-50)
-        
-#         # Add logo in footer if available
-#         if self.logo_path and os.path.exists(self.logo_path):
-#             try:
-#                 self.image(self.logo_path, 90, self.get_y() + 5, 20)  # Centered logo
-#             except:
-#                 pass
-        
-#         self.set_y(-40)
-#         self.set_font('Arial', 'I', 8)
-#         self.set_text_color(128, 128, 128)
-        
-#         # Footer content
-#         self.cell(0, 4, 'Bold Indicates Abnormal Values', 0, 1, 'C')
-#         self.ln(2)
-        
-#         # Doctor info
-#         self.set_font('Arial', 'B', 10)
-#         self.set_text_color(0, 0, 0)
-#         self.cell(0, 4, 'Lab Technician', 0, 1, 'C')
-#         self.cell(0, 4, 'CrystalKetan Chavan', 0, 1, 'C')
-#         self.cell(0, 4, 'M.D. M.B.B.S.', 0, 1, 'C')
-        
-#         self.set_font('Arial', '', 8)
-#         self.cell(0, 4, '305 Goldcrest Business Park, LB.S Marg, Ghatkopar (West), Mumbai - 400086, India', 0, 1, 'C')
-
-# def create_pdf_report(patient_info, report_data, selected_reports, logo_path=None):
-#     pdf = LabReportPDF(logo_path)
-#     pdf.add_page()
-    
-#     # Patient Information Section
-#     pdf.set_font('Arial', 'B', 9)
-#     y_pos = pdf.get_y()
-    
-#     # Left column
-#     pdf.cell(30, 5, 'LAB NO.', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['lab_no'], 0, 0)
-    
-#     # Right column
-#     pdf.cell(30, 5, 'REG DATE', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['reg_date'], 0, 1)
-    
-#     pdf.cell(30, 5, 'PATIENT NAME', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['patient_name'], 0, 0)
-    
-#     pdf.cell(30, 5, 'SAMPLE DATE', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['sample_date'], 0, 1)
-    
-#     pdf.cell(30, 5, 'REF. BY DR.', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['ref_by'], 0, 0)
-    
-#     pdf.cell(30, 5, 'REPORT DATE', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['report_date'], 0, 1)
-    
-#     pdf.cell(30, 5, 'SAMPLE COLL. AT', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, patient_info['sample_collection'], 0, 0)
-    
-#     pdf.cell(30, 5, 'SEX / AGE', 0, 0)
-#     pdf.cell(5, 5, ':', 0, 0)
-#     pdf.cell(50, 5, f"{patient_info['sex']} / {patient_info['age']} Years", 0, 1)
-    
-#     pdf.ln(5)
-    
-#     # Draw line separator
-#     pdf.set_draw_color(0, 0, 0)
-#     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-#     pdf.ln(5)
-    
-#     # Report Content
-#     for report_name in selected_reports:
-#         # Report title
-#         pdf.set_font('Arial', 'B', 12)
-#         pdf.cell(0, 8, report_name.upper(), 0, 1, 'C')
-#         pdf.ln(3)
-        
-#         # Table headers with background
-#         pdf.set_font('Arial', 'B', 9)
-#         pdf.set_fill_color(240, 240, 240)
-        
-#         pdf.cell(60, 8, 'TEST', 0, 0, 'L', True)
-#         pdf.cell(30, 8, 'RESULT', 0, 0, 'C', True)
-#         pdf.cell(25, 8, 'UNITS', 0, 0, 'C', True)
-#         pdf.cell(75, 8, 'NORMAL VALUES', 0, 1, 'C', True)
-        
-#         pdf.ln(2)
-        
-#         # Process data by categories for CBC
-#         if report_name == "Complete Blood Count (CBC)":
-#             data = report_data[report_name]
-            
-#             # Basic CBC parameters
-#             basic_tests = ['Haemoglobin', 'RBC Count', 'PCV']
-#             pdf.set_font('Arial', '', 8)
-            
-#             for test_name in basic_tests:
-#                 row = data[data['Test'] == test_name]
-#                 if not row.empty:
-#                     row = row.iloc[0]
-#                     result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                    
-#                     pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                    
-#                     if result_str and result_str.strip():
-#                         pdf.set_font('Arial', 'B', 8)
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                         pdf.set_font('Arial', '', 8)
-#                     else:
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-                    
-#                     pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                     pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-            
-#             pdf.ln(3)
-            
-#             # RBC INDICES section
-#             pdf.set_font('Arial', 'B', 10)
-#             pdf.cell(0, 6, 'RBC INDICES', 0, 1, 'L')
-            
-#             rbc_indices = ['MCV', 'MCH', 'MCHC', 'RDW']
-#             pdf.set_font('Arial', '', 8)
-            
-#             for test_name in rbc_indices:
-#                 row = data[data['Test'] == test_name]
-#                 if not row.empty:
-#                     row = row.iloc[0]
-#                     result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                    
-#                     pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                    
-#                     if result_str and result_str.strip():
-#                         pdf.set_font('Arial', 'B', 8)
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                         pdf.set_font('Arial', '', 8)
-#                     else:
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-                    
-#                     pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                     pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-            
-#             pdf.ln(3)
-            
-#             # TOTAL WBC COUNT section
-#             pdf.set_font('Arial', 'B', 10)
-#             pdf.cell(0, 6, 'TOTAL WBC COUNT', 0, 1, 'L')
-            
-#             wbc_tests = ['Total WBC Count', 'Neutrophils', 'Lymphocytes', 'Eosinophils', 'Monocytes', 'Basophils']
-#             pdf.set_font('Arial', '', 8)
-            
-#             for test_name in wbc_tests:
-#                 row = data[data['Test'] == test_name]
-#                 if not row.empty:
-#                     row = row.iloc[0]
-#                     result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                    
-#                     pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                    
-#                     if result_str and result_str.strip():
-#                         pdf.set_font('Arial', 'B', 8)
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                         pdf.set_font('Arial', '', 8)
-#                     else:
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-                    
-#                     pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                     pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-            
-#             pdf.ln(3)
-            
-#             # PLATELETS section
-#             pdf.set_font('Arial', 'B', 10)
-#             pdf.cell(0, 6, 'PLATELETS', 0, 1, 'L')
-            
-#             platelet_tests = ['Platelet Count', 'Platelets on Smear']
-#             pdf.set_font('Arial', '', 8)
-            
-#             for test_name in platelet_tests:
-#                 row = data[data['Test'] == test_name]
-#                 if not row.empty:
-#                     row = row.iloc[0]
-#                     result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                    
-#                     pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                    
-#                     if result_str and result_str.strip():
-#                         pdf.set_font('Arial', 'B', 8)
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                         pdf.set_font('Arial', '', 8)
-#                     else:
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-                    
-#                     pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                     pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-            
-#             pdf.ln(3)
-            
-#             # PERIPHERAL BLOOD SMEAR section
-#             pdf.set_font('Arial', 'B', 10)
-#             pdf.cell(0, 6, 'PERIPHERAL BLOOD SMEAR', 0, 1, 'L')
-            
-#             smear_tests = ['RBC Morphology', 'WBCs on PS', 'RDWSD', 'RDWCV', 'MPV', 'P-LCR']
-#             pdf.set_font('Arial', '', 8)
-            
-#             for test_name in smear_tests:
-#                 row = data[data['Test'] == test_name]
-#                 if not row.empty:
-#                     row = row.iloc[0]
-#                     result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                    
-#                     pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                    
-#                     if result_str and result_str.strip():
-#                         pdf.set_font('Arial', 'B', 8)
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                         pdf.set_font('Arial', '', 8)
-#                     else:
-#                         pdf.cell(30, 5, result_str, 0, 0, 'C')
-                    
-#                     pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                     pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-            
-#         else:
-#             # For other report types, show without categories
-#             data = report_data[report_name]
-#             pdf.set_font('Arial', '', 8)
-            
-#             for index, row in data.iterrows():
-#                 result_str = str(row['Result']) if pd.notna(row['Result']) else ''
-                
-#                 pdf.cell(60, 5, str(row['Test']), 0, 0, 'L')
-                
-#                 if result_str and result_str.strip():
-#                     pdf.set_font('Arial', 'B', 8)
-#                     pdf.cell(30, 5, result_str, 0, 0, 'C')
-#                     pdf.set_font('Arial', '', 8)
-#                 else:
-#                     pdf.cell(30, 5, result_str, 0, 0, 'C')
-                
-#                 pdf.cell(25, 5, str(row['Units']), 0, 0, 'C')
-#                 pdf.cell(75, 5, str(row['Normal Values']), 0, 1, 'L')
-        
-#         pdf.ln(5)
-    
-#     # End of report
-#     pdf.set_font('Arial', 'I', 10)
-#     pdf.cell(0, 8, '------------- End of Report -------------', 0, 1, 'C')
-    
-#     # Save the PDF
-#     filename = f"{patient_info['patient_name'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-#     pdf.output(filename)
-#     return filename
-
-# def load_report_template(report_name):
-#     if report_name == "Complete Blood Count (CBC)":
-#         data = {
-#             "Test": [
-#                 "Haemoglobin", "RBC Count", "PCV", 
-#                 "MCV", "MCH", "MCHC", "RDW",
-#                 "Total WBC Count", "Neutrophils", "Lymphocytes", 
-#                 "Eosinophils", "Monocytes", "Basophils",
-#                 "Platelet Count", "Platelets on Smear",
-#                 "RBC Morphology", "WBCs on PS", "RDWSD", "RDWCV", "MPV", "P-LCR"
-#             ],
-#             "Result": [""] * 21,
-#             "Units": [
-#                 "g%", "million/cu.mm.", "%", 
-#                 "fl", "pg", "%", "fl",
-#                 "/cu.mm", "%", "%", 
-#                 "%", "%", "%",
-#                 "lak/cu.mm", "",
-#                 "", "", "fl", "%", "fl", "%"
-#             ],
-#             "Normal Values": [
-#                 "Male: 14 - 16 g%", "4.0 - 6.0 million/cu.mm", "37 - 54%",
-#                 "80 - 99 fl", "27 - 31 pg", "32 - 37%", "9 - 17 fl",
-#                 "4000 - 10,000/cu.mm", "40 - 70 %", "20 - 45 %",
-#                 "00 - 06 %", "00 - 08 %", "00 - 01 %",
-#                 "150000 - 450000/lak cu.mm", "Adequate On Smear",
-#                 "Normocytic, Normochromic", "Normal", "37 - 54 fl", "11 - 16 %", "9 - 13 fl", "13 - 43 %"
-#             ]
-#         }
-#         return pd.DataFrame(data)
-    
-#     elif report_name == "Liver Function Test (LFT)":
-#         data = {
-#             "Test": ["Bilirubin Total", "Bilirubin Direct", "Bilirubin Indirect", 
-#                     "SGOT (AST)", "SGPT (ALT)", "Alkaline Phosphatase", 
-#                     "Total Protein", "Albumin", "Globulin", "A/G Ratio"],
-#             "Result": [""] * 10,
-#             "Units": ["mg/dl", "mg/dl", "mg/dl", "U/L", "U/L", "U/L", 
-#                      "g/dl", "g/dl", "g/dl", ""],
-#             "Normal Values": ["0.2 - 1.2 mg/dl", "0.0 - 0.3 mg/dl", "0.2 - 0.9 mg/dl",
-#                              "5 - 40 U/L", "5 - 41 U/L", "44 - 147 U/L",
-#                              "6.0 - 8.3 g/dl", "3.5 - 5.2 g/dl", "2.0 - 3.5 g/dl", "1.0 - 2.5"]
-#         }
-#         return pd.DataFrame(data)
-    
-#     elif report_name == "Kidney Function Test (KFT)":
-#         data = {
-#             "Test": ["Blood Urea", "Serum Creatinine", "Uric Acid", 
-#                     "Sodium", "Potassium", "Chloride"],
-#             "Result": [""] * 6,
-#             "Units": ["mg/dl", "mg/dl", "mg/dl", "mEq/L", "mEq/L", "mEq/L"],
-#             "Normal Values": ["15 - 45 mg/dl", "0.6 - 1.4 mg/dl", "2.4 - 7.0 mg/dl",
-#                              "135 - 155 mEq/L", "3.5 - 5.5 mEq/L", "98 - 107 mEq/L"]
-#         }
-#         return pd.DataFrame(data)
-    
-#     elif report_name == "Thyroid Function Test (TFT)":
-#         data = {
-#             "Test": ["T3 (Triiodothyronine)", "T4 (Thyroxine)", "TSH"],
-#             "Result": [""] * 3,
-#             "Units": ["ng/ml", "μg/dl", "μIU/ml"],
-#             "Normal Values": ["0.8 - 2.0 ng/ml", "4.8 - 12.7 μg/dl", "0.27 - 4.2 μIU/ml"]
-#         }
-#         return pd.DataFrame(data)
-    
-#     else:
-#         return pd.DataFrame({
-#             "Test": ["Test 1", "Test 2", "Test 3"],
-#             "Result": ["", "", ""],
-#             "Units": ["unit 1", "unit 2", "unit 3"],
-#             "Normal Values": ["normal 1", "normal 2", "normal 3"]
-#         })
-
-# def main():
-#     st.title("🔬 Lab Report Generator")
-#     st.markdown("---")
-    
-#     # Step 1: Select Reports
-#     st.header("📋 Select Report Types")
-#     selected_reports = st.multiselect(
-#         "Choose the tests you want to include:",
-#         list(REPORT_TYPES.keys()),
-#         help="You can select multiple report types"
-#     )
-    
-#     if selected_reports:
-#         # Step 2: Patient Information
-#         st.header("👤 Patient Information")
-#         st.markdown("Please fill in the patient details:")
-        
-#         col1, col2 = st.columns(2)
-        
-#         with col1:
-#             lab_no = st.text_input("Lab Number:", value="2")
-#             patient_name = st.text_input("Patient Name:", value="MR. ")
-#             ref_by = st.text_input("Referred By:", value="DR. ")
-#             sample_collection = st.text_input("Sample Collection At:", value="CRYSTAL LAB")
-#             sex = st.selectbox("Sex:", ["Male", "Female", "Other"])
-#             age = st.number_input("Age (Years):", min_value=0, max_value=120, value=23)
-#         with col2:
-#             reg_date = st.date_input("Registration Date:", value=datetime.now())
-#             reg_time = st.time_input("Registration Time:", value=datetime.now().time())
-#             sample_date = st.date_input("Sample Date:", value=datetime.now())
-#             sample_time = st.time_input("Sample Time:", value=datetime.now().time())
-#             report_date = st.date_input("Report Date:", value=datetime.now())
-#             report_time = st.time_input("Report Time:", value=datetime.now().time())
-            
-#         st.markdown("---")
-            
-        
-#         # Store patient info
-#         st.session_state.patient_data = {
-#             "lab_no": lab_no,
-#             "patient_name": patient_name.upper(),
-#             "ref_by": ref_by.upper(),
-#             "sample_collection": sample_collection.upper(),
-#             "reg_date": f"{reg_date.strftime('%d-%b-%Y')} {reg_time.strftime('%I:%M %p')}",
-#             "sample_date": f"{sample_date.strftime('%d-%b-%Y')} {sample_time.strftime('%I:%M %p')}",
-#             "report_date": f"{report_date.strftime('%d-%b-%Y')} {report_time.strftime('%I:%M %p')}",
-#             "sex": sex,
-#             "age": age
-#         }
-        
-#         # Step 3: Enter Test Results
-#         st.header("🧪 Enter Test Results")
-#         st.markdown("Fill in the test results for each selected report:")
-        
-#         for i, report_name in enumerate(selected_reports):
-#             with st.expander(f"📊 {report_name}", expanded=True):
-#                 template_df = load_report_template(report_name)
-                
-#                 # Create editable dataframe
-#                 edited_df = st.data_editor(
-#                     template_df,
-#                     column_config={
-#                         "Test": st.column_config.TextColumn(
-#                             "Test Name",
-#                             disabled=True,
-#                             width="large"
-#                         ),
-#                         "Result": st.column_config.TextColumn(
-#                             "Result",
-#                             width="medium",
-#                             help="Enter the test result value"
-#                         ),
-#                         "Units": st.column_config.TextColumn(
-#                             "Units",
-#                             disabled=True,
-#                             width="small"
-#                         ),
-#                         "Normal Values": st.column_config.TextColumn(
-#                             "Normal Range",
-#                             disabled=True,
-#                             width="medium"
-#                         )
-#                     },
-#                     hide_index=True,
-#                     use_container_width=True,
-#                     key=f"editor_{i}"
-#                 )
-                
-#                 st.session_state.report_data[report_name] = edited_df
-        
-#         # Step 4: Generate Report
-#         st.header("📄 Generate Report")
-#         st.markdown("Review and generate the final lab report:")
-        
-#         # Logo path input
-#         logo_path = r"C:\Users\Admin\Pictures\Screenshots\Screenshot 2025-06-26 140637.png"
-        
-#         # Show summary
-#         with st.expander("📋 Report Summary", expanded=False):
-#             st.write("**Patient:** ", st.session_state.patient_data['patient_name'])
-#             st.write("**Lab No:** ", st.session_state.patient_data['lab_no'])
-#             st.write("**Reports:** ", ", ".join(selected_reports))
-#             st.write("**Report Date:** ", st.session_state.patient_data['report_date'])
-#             if logo_path and logo_path != "/path/to/your/logo.png":
-#                 st.write("**Logo:** ", logo_path)
-        
-#         col1, col2 = st.columns([1, 1])
-        
-#         with col1:
-#             if st.button("🔄 Generate PDF Report", type="primary", use_container_width=True):
-#                 with st.spinner("Generating report..."):
-#                     try:
-#                         # Use logo path if provided and exists
-#                         logo_to_use = logo_path if (logo_path and logo_path != "/path/to/your/logo.png" and os.path.exists(logo_path)) else None
-                        
-#                         pdf_filename = create_pdf_report(
-#                             st.session_state.patient_data,
-#                             st.session_state.report_data,
-#                             selected_reports,
-#                             logo_to_use
-#                         )
-                        
-#                         st.success("✅ Report generated successfully!")
-                        
-#                         # Provide download link
-#                         with open(pdf_filename, "rb") as f:
-#                             pdf_data = f.read()
-                        
-#                         st.download_button(
-#                             label="📥 Download PDF Report",
-#                             data=pdf_data,
-#                             file_name=pdf_filename,
-#                             mime="application/pdf",
-#                             use_container_width=True
-#                         )
-                        
-#                         # Clean up
-#                         os.remove(pdf_filename)
-                        
-#                     except Exception as e:
-#                         st.error(f"❌ Error generating report: {str(e)}")
-        
-#         with col2:
-#             if st.button("👁️ Preview Report Data", use_container_width=True):
-#                 st.subheader("📊 Report Preview")
-                
-#                 # Show patient info
-#                 st.write("**Patient Information:**")
-#                 info_df = pd.DataFrame(list(st.session_state.patient_data.items()), 
-#                                      columns=['Field', 'Value'])
-#                 st.dataframe(info_df, use_container_width=True, hide_index=True)
-                
-#                 # Show test results
-#                 for report_name in selected_reports:
-#                     st.write(f"**{report_name} Results:**")
-#                     st.dataframe(st.session_state.report_data[report_name], 
-#                                use_container_width=True, hide_index=True)
-    
-#     else:
-#         st.info("👆 Please select at least one report type to get started.")
-        
-#         # Show available templates
-#         st.subheader("📋 Available Report Templates")
-#         for report_type in REPORT_TYPES.keys():
-#             st.write(f"• {report_type}")
-
-# if __name__ == "__main__":
-#     main()
