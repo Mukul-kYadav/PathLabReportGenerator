@@ -300,6 +300,26 @@ def generate_cbc_report(pdf, patient_info, report_data):
     pdf.cell(0, 5, "Test done on Nihon Kohden MEK- 6420K fully automated cell counter.", 0, 1)
     pdf.ln(5)
 
+def generate_lft_report(pdf, patient_info, report_data):
+    data = report_data["Liver Function Test (LFT)"]
+    pdf.add_report_title("Liver Function Test (LFT)")
+
+    def print_if_has_result(subset, section_title=None):
+        subset = subset[subset['Result'].notna() & (subset['Result'].astype(str).str.strip() != '')]
+        if not subset.empty:
+            pdf.add_test_table(subset, section_title)
+
+    # Basic CBC parameters
+    basic_tests = ['Bilirubin Total', 'Bilirubin Direct', 'Bilirubin Indirect', 'S.G.O.T.', 'S.G.P.T.', 'Alkaline Phosphatase', 'Total Proteins', 'Albumin', 'Globulin', 'A / G Ratio', 'G.G.T.P.']
+    basic_data = data[data['Test'].isin(basic_tests)]
+    print_if_has_result(basic_data)
+
+    # Add instrument information
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 5, "Test Done on semi automated analyser Micro Lab RX-50.", 0, 1)
+    pdf.ln(5)
+
+
 def create_pdf_report(patient_info, report_data, selected_reports, logo_path=None):
     pdf = LabReportPDF(logo_path)
     pdf.add_page()
@@ -309,8 +329,8 @@ def create_pdf_report(patient_info, report_data, selected_reports, logo_path=Non
     for report_name in selected_reports:
         if report_name == "Complete Blood Count (CBC)":
             generate_cbc_report(pdf, patient_info, report_data)
-        # elif report_name == "Liver Function Test (LFT)":
-        #     generate_lft_report(pdf, patient_info, report_data)
+        elif report_name == "Liver Function Test (LFT)":
+            generate_lft_report(pdf, patient_info, report_data)
         # elif report_name == "Kidney Function Test (KFT)":
         #     generate_kft_report(pdf, patient_info, report_data)
         # elif report_name == "Thyroid Function Test (TFT)":
@@ -347,7 +367,7 @@ def load_report_template(report_name):
                 "", "", "fl", "%", "fl", "%"
             ],
             "Normal Values": [
-                "Male: 14 - 16 g%", "4.0 - 6.0 million/cu.mm", "37 - 54 %",
+                "Male: 14 - 16 g%, Female: 12 - 14 g%", "4.0 - 6.0 million/cu.mm", "35 - 60 %",
                 "80 - 99 fl", "27 - 31 pg", "32 - 37 %", "9 - 17 fl",
                 "4000 - 10,000 /cu.mm", "40 - 70 %", "20 - 45 %",
                 "00 - 06 %", "00 - 08 %", "00 - 01 %",
@@ -359,15 +379,13 @@ def load_report_template(report_name):
     
     elif report_name == "Liver Function Test (LFT)":
         data = {
-            "Test": ["Bilirubin Total", "Bilirubin Direct", "Bilirubin Indirect", 
-                    "SGOT (AST)", "SGPT (ALT)", "Alkaline Phosphatase", 
-                    "Total Protein", "Albumin", "Globulin", "A/G Ratio"],
-            "Result": [""] * 10,
-            "Units": ["mg/dl", "mg/dl", "mg/dl", "U/L", "U/L", "U/L", 
-                     "g/dl", "g/dl", "g/dl", ""],
-            "Normal Values": ["0.2 - 1.2 mg/dl", "0.0 - 0.3 mg/dl", "0.2 - 0.9 mg/dl",
-                             "5 - 40 U/L", "5 - 41 U/L", "44 - 147 U/L",
-                             "6.0 - 8.3 g/dl", "3.5 - 5.2 g/dl", "2.0 - 3.5 g/dl", "1.0 - 2.5"]
+            "Test": ['Bilirubin Total', 'Bilirubin Direct', 'Bilirubin Indirect', 'S.G.O.T.', 'S.G.P.T.', 'Alkaline Phosphatase', 'Total Proteins', 'Albumin', 'Globulin', 'A / G Ratio', 'G.G.T.P.'],
+            "Result": [""] * 11,
+            "Units": ["mg/dl", "mg/dl", "mg/dl", "U/L", "IU/L", "IU/L", 
+                     "gm/dl", "gm/dl", "gm/dl", "", "IU/L"],
+            "Normal Values": ["0.1 - 1.2 mg/dl", "0.1 - 0.4 mg/dl", "0.1 - 0.7 mg/dl",
+                             "0 - 46 U/L", "0 - 49 U/L", "15 - 112 IU/L",
+                             "6.0 - 8.3 gm/dl", "3.2 - 5.0 gm/dl", "2.0 - 3.5 gm/dl", "1.0 - 2.3", "25 - 43 IU/L"]
         }
         return pd.DataFrame(data)
     
