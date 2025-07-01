@@ -51,6 +51,7 @@ st.markdown("""
 REPORT_TYPES = {
     "Complete Blood Count (CBC)": "cbc_template.csv",
     "Liver Function Test (LFT)": "lft_template.csv",
+    "24 HOURS URINARY PROTEINS": "",
     "Kidney Function Test (KFT)": "kft_template.csv",
     "Thyroid Function Test (TFT)": "tft_template.csv"
 }
@@ -319,6 +320,25 @@ def generate_lft_report(pdf, patient_info, report_data):
     pdf.cell(0, 5, "Test Done on semi automated analyser Micro Lab RX-50.", 0, 1)
     pdf.ln(5)
 
+def generate_24_HOURS_URINARY_PROTEINS_report(pdf, patient_info, report_data):
+    data = report_data["24 HOURS URINARY PROTEINS"]
+    pdf.add_report_title("24 HOURS URINARY PROTEINS")
+
+    def print_if_has_result(subset, section_title=None):
+        subset = subset[subset['Result'].notna() & (subset['Result'].astype(str).str.strip() != '')]
+        if not subset.empty:
+            pdf.add_test_table(subset, section_title)
+
+    # Basic CBC parameters
+    basic_tests = ["24 hrs Urinary volume", "24 hrs Urinary Protien"]
+    basic_data = data[data['Test'].isin(basic_tests)]
+    print_if_has_result(basic_data)
+
+    # Add instrument information
+    # pdf.set_font('Arial', 'I', 8)
+    # pdf.cell(0, 5, "Test Done on semi automated analyser Micro Lab RX-50.", 0, 1)
+    # pdf.ln(5)
+
 
 def create_pdf_report(patient_info, report_data, selected_reports, logo_path=None):
     pdf = LabReportPDF(logo_path)
@@ -331,8 +351,8 @@ def create_pdf_report(patient_info, report_data, selected_reports, logo_path=Non
             generate_cbc_report(pdf, patient_info, report_data)
         elif report_name == "Liver Function Test (LFT)":
             generate_lft_report(pdf, patient_info, report_data)
-        # elif report_name == "Kidney Function Test (KFT)":
-        #     generate_kft_report(pdf, patient_info, report_data)
+        elif report_name == "24 HOURS URINARY PROTEINS":
+            generate_24_HOURS_URINARY_PROTEINS_report(pdf, patient_info, report_data)
         # elif report_name == "Thyroid Function Test (TFT)":
         #     generate_tft_report(pdf, patient_info, report_data)
         
@@ -389,23 +409,12 @@ def load_report_template(report_name):
         }
         return pd.DataFrame(data)
     
-    elif report_name == "Kidney Function Test (KFT)":
+    elif report_name == "24 HOURS URINARY PROTEINS":
         data = {
-            "Test": ["Blood Urea", "Serum Creatinine", "Uric Acid", 
-                    "Sodium", "Potassium", "Chloride"],
-            "Result": [""] * 6,
-            "Units": ["mg/dl", "mg/dl", "mg/dl", "mEq/L", "mEq/L", "mEq/L"],
-            "Normal Values": ["15 - 45 mg/dl", "0.6 - 1.4 mg/dl", "2.4 - 7.0 mg/dl",
-                             "135 - 155 mEq/L", "3.5 - 5.5 mEq/L", "98 - 107 mEq/L"]
-        }
-        return pd.DataFrame(data)
-    
-    elif report_name == "Thyroid Function Test (TFT)":
-        data = {
-            "Test": ["T3 (Triiodothyronine)", "T4 (Thyroxine)", "TSH"],
-            "Result": [""] * 3,
-            "Units": ["ng/ml", "μg/dl", "μIU/ml"],
-            "Normal Values": ["0.8 - 2.0 ng/ml", "4.8 - 12.7 μg/dl", "0.27 - 4.2 μIU/ml"]
+            "Test": ["24 hrs Urinary volume", "24 hrs Urinary Protien"],
+            "Result": [""] * 2,
+            "Units": ["ml", ""],
+            "Normal Values": ["", "45 - 119 mg / 24 hrs"]
         }
         return pd.DataFrame(data)
     
