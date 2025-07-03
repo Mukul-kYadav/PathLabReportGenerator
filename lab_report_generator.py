@@ -52,6 +52,7 @@ REPORT_TYPES = {
     "Complete Blood Count (CBC)": "cbc_template.csv",
     "Liver Function Test (LFT)": "lft_template.csv",
     "24 HOURS URINARY PROTEINS": "",
+    "BLOOD SUGAR REPORT (FBS / PP)":"",
     "Kidney Function Test (KFT)": "kft_template.csv",
     "Thyroid Function Test (TFT)": "tft_template.csv"
 }
@@ -339,6 +340,36 @@ def generate_24_HOURS_URINARY_PROTEINS_report(pdf, patient_info, report_data):
     # pdf.cell(0, 5, "Test Done on semi automated analyser Micro Lab RX-50.", 0, 1)
     # pdf.ln(5)
 
+def generate_blood_sugar_report(pdf, patient_info, report_data):
+    data = report_data["BLOOD SUGAR REPORT (FBS / PP)"]
+    pdf.add_report_title("REPORT ON BLOOD SUGAR ESTIMATION")
+
+    def print_if_has_result(subset, section_title=None):
+        subset = subset[subset['Result'].notna() & (subset['Result'].astype(str).str.strip() != '')]
+        if not subset.empty:
+            pdf.add_test_table(subset, section_title)
+
+    # Basic CBC parameters
+    basic_tests = ["Blood Sugar", "Urine Sugar", "Urine Acetone"]
+    basic_data = data[data['Test'].isin(basic_tests)]
+    print_if_has_result(basic_data, "FASTING SUGAR")
+
+    basic_tests = ["Blood  Sugar", "Urine  Sugar", "Urine  Acetone"]
+    basic_data = data[data['Test'].isin(basic_tests)]
+    print_if_has_result(basic_data, "2 HRS AFTER LUNCH")
+
+    # Add instrument information
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 5, "Method : GOD - POD Enzymatic", 0, 1)
+    pdf.cell(0, 5, "Test Done on Semi automated analyserMicro Lab RX-50", 0, 1)
+    pdf.cell(0, 5, "Urine Sugar Interpretation:", 0, 1)
+    pdf.cell(0, 5, "Trace : 0.1 g/dl", 0, 1)
+    pdf.cell(0, 5, "+    : 0.25 g/dl", 0, 1)
+    pdf.cell(0, 5, "++   : 0.5 g/dl", 0, 1)
+    pdf.cell(0, 5, "+++  : 1.0 g/dl", 0, 1)
+    pdf.cell(0, 5, "++++ : 2.0 g/dl", 0, 1)
+    pdf.ln(5)
+
 
 def create_pdf_report(patient_info, report_data, selected_reports, logo_path=None):
     pdf = LabReportPDF(logo_path)
@@ -353,8 +384,8 @@ def create_pdf_report(patient_info, report_data, selected_reports, logo_path=Non
             generate_lft_report(pdf, patient_info, report_data)
         elif report_name == "24 HOURS URINARY PROTEINS":
             generate_24_HOURS_URINARY_PROTEINS_report(pdf, patient_info, report_data)
-        # elif report_name == "Thyroid Function Test (TFT)":
-        #     generate_tft_report(pdf, patient_info, report_data)
+        elif report_name == "BLOOD SUGAR REPORT (FBS / PP)":
+            generate_blood_sugar_report(pdf, patient_info, report_data)
         
         # Add page break if more reports to come
         if report_name != selected_reports[-1]:
@@ -415,6 +446,15 @@ def load_report_template(report_name):
             "Result": [""] * 2,
             "Units": ["ml", ""],
             "Normal Values": ["", "45 - 119 mg / 24 hrs"]
+        }
+        return pd.DataFrame(data)
+    
+    elif report_name == "BLOOD SUGAR REPORT (FBS / PP)":
+        data = {
+            "Test": ["Blood Sugar", "Urine Sugar", "Urine Acetone", "Blood  Sugar", "Urine  Sugar", "Urine  Acetone"],
+            "Result": [""] * 6,
+            "Units": ["70 - 110 mg / dl", "", "", "70 - 140 mg / dl", "", ""],
+            "Normal Values": ["70 - 110 mg %", "", "", "0 - 140 mg %", "", ""]
         }
         return pd.DataFrame(data)
     
